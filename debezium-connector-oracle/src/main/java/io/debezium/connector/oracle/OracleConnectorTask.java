@@ -67,11 +67,11 @@ public class OracleConnectorTask extends BaseSourceTask<OraclePartition, OracleO
         JdbcConfiguration jdbcConfig = connectorConfig.getJdbcConfig();
         Configuration readonlyConfig = connectorConfig.isLogMiningReadOnly() ? buildReadonlyConfig(jdbcConfig.asMap(), connectorConfig) : null;
         OracleConnection mainConnection = new OracleConnection(jdbcConfig);
-        OracleConnectionFactory<OracleConnection> dualConnectionFactory = new OracleConnectionFactory<>(
+        OracleConnectionFactory<OracleConnection> connectionFactory = new OracleConnectionFactory<>(
                 () -> mainConnection,
                 () -> readonlyConfig != null ? new ReadOnlyOracleConnection(JdbcConfiguration.adapt(readonlyConfig)) : mainConnection,
                 connectorConfig);
-        jdbcConnection = dualConnectionFactory.mainConnection();
+        jdbcConnection = connectionFactory.mainConnection();
 
         final boolean extendedStringsSupported = jdbcConnection.hasExtendedStringSupport();
 
@@ -87,7 +87,7 @@ public class OracleConnectorTask extends BaseSourceTask<OraclePartition, OracleO
 
         // The bean registry JDBC connection should always be pinned to the PDB
         // when the connector is configured to use a pluggable database
-        beanRegistryJdbcConnection = dualConnectionFactory.newConnection();
+        beanRegistryJdbcConnection = connectionFactory.newConnection();
         if (!Strings.isNullOrEmpty(connectorConfig.getPdbName())) {
             beanRegistryJdbcConnection.setSessionToPdb(connectorConfig.getPdbName());
         }
@@ -174,7 +174,7 @@ public class OracleConnectorTask extends BaseSourceTask<OraclePartition, OracleO
                 errorHandler,
                 OracleConnector.class,
                 connectorConfig,
-                new OracleChangeEventSourceFactory(connectorConfig, dualConnectionFactory, errorHandler, dispatcher, clock, schema, jdbcConfig, taskContext,
+                new OracleChangeEventSourceFactory(connectorConfig, connectionFactory, errorHandler, dispatcher, clock, schema, jdbcConfig, taskContext,
                         streamingMetrics, snapshotterService),
                 new OracleChangeEventSourceMetricsFactory(streamingMetrics),
                 dispatcher,
