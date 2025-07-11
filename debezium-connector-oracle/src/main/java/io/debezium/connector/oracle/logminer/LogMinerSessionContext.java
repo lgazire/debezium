@@ -32,14 +32,16 @@ public class LogMinerSessionContext implements AutoCloseable {
     private final OracleConnection connection;
     private final boolean useContinuousMining;
     private final LogMiningStrategy strategy;
+    private final String dictionaryFilePath;
 
     private boolean sessionStarted = false;
     private Duration lastSessionStartTime = Duration.ZERO;
 
-    public LogMinerSessionContext(OracleConnection connection, boolean useContinuousMining, LogMiningStrategy strategy) {
+    public LogMinerSessionContext(OracleConnection connection, boolean useContinuousMining, LogMiningStrategy strategy, String dictionaryFilePath) {
         this.connection = connection;
         this.useContinuousMining = useContinuousMining;
         this.strategy = strategy;
+        this.dictionaryFilePath = dictionaryFilePath;
     }
 
     @Override
@@ -109,7 +111,7 @@ public class LogMinerSessionContext implements AutoCloseable {
      * @throws SQLException if a database exception occurred starting the mining session
      * @throws RetriableLogMinerException if the operation should be retried
      */
-    public void startSession(Scn startScn, Scn endScn, boolean committedDataOnly, String dictionaryFilePath) throws SQLException {
+    public void startSession(Scn startScn, Scn endScn, boolean committedDataOnly) throws SQLException {
         Objects.requireNonNull(startScn, "The start SCN must be provided, but can be Scn.NULL");
         Objects.requireNonNull(endScn, "The end SCN must be provided, but can be Scn.NULL");
 

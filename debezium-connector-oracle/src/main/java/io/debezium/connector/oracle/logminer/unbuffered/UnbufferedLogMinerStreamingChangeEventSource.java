@@ -152,13 +152,12 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
                 watch = Stopwatch.accumulating().start();
             }
 
-            if (startMiningSession(minLogScn, Scn.NULL, miningStartAttempts, getConfig().getLogMiningPathToDictionary())) {
+            if (startMiningSession(minLogScn, Scn.NULL, miningStartAttempts)) {
                 miningStartAttempts = 1;
                 minCommitScn = process(minCommitScn);
 
                 getMetrics().setLastBatchProcessingDuration(Duration.between(batchStartTime, Instant.now()));
-            }
-            else {
+            } else {
                 miningStartAttempts++;
             }
 
@@ -189,8 +188,7 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
     public void close() {
         try {
             resumePositionProvider.close();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOGGER.warn("Failed to gracefully shutdown the resume position provider", e);
         }
     }
@@ -251,7 +249,7 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
      *
      * @param minCommitScn mining range lower bounds SCN, should not be {@code null}
      * @return the next iteration's lower bounds SCN, never {@code null}
-     * @throws SQLException if a database exception occurred
+     * @throws SQLException         if a database exception occurred
      * @throws InterruptedException if the thread is interrupted
      */
     private Scn process(Scn minCommitScn) throws SQLException, InterruptedException {
@@ -407,8 +405,8 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
         }
 
         throw new DebeziumException(String.format("Potential Oracle LogMiner Bug - " +
-                "Rollback transaction %s with SCN %s found emitted %d captured changes. " +
-                "A re-snapshot may be required. Please review your topics populated by this transaction.",
+                        "Rollback transaction %s with SCN %s found emitted %d captured changes. " +
+                        "A re-snapshot may be required. Please review your topics populated by this transaction.",
                 event.getTransactionId(), event.getScn().toString(), accumulator.getTotalEvents()));
     }
 
@@ -473,12 +471,10 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
                                 getSchema(),
                                 getClock()));
             }
-        }
-        catch (SQLException e) {
+        } catch (SQLException e) {
             LOGGER.warn("Failed to process truncate event", e);
             getMetrics().incrementWarningCount();
-        }
-        finally {
+        } finally {
             if (includeSql) {
                 getOffsetContext().setRedoSql("");
             }
@@ -488,7 +484,7 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
     /**
      * Handles the dispatch of events added to the {@link #accumulator}.
      *
-     * @param event the event to be dispatched, never {@code null}
+     * @param event           the event to be dispatched, never {@code null}
      * @param eventsProcessed the number of events dispatched thus far
      * @throws InterruptedException if the thread is interrupted
      */
@@ -521,8 +517,7 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
                             getSchema(),
                             Clock.system()));
 
-        }
-        else if (event instanceof DmlEvent dmlEvent) {
+        } else if (event instanceof DmlEvent dmlEvent) {
             final int databaseOffsetSeconds = databaseOffset.getTotalSeconds();
 
             getMetrics().calculateLagFromSource(dmlEvent.getChangeTime());

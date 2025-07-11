@@ -89,14 +89,14 @@ public class ResumePositionProvider implements AutoCloseable {
                     connection.resetSessionToCdb();
                 }
 
-                sessionContext = new LogMinerSessionContext(connection, false, LogMiningStrategy.ONLINE_CATALOG);
+                sessionContext = new LogMinerSessionContext(connection, false, LogMiningStrategy.ONLINE_CATALOG, connectorConfig.getLogMiningPathToDictionary());
             }
 
             sessionContext.removeAllLogFilesFromSession();
 
             sessionContext.addLogFiles(logFiles);
 
-            sessionContext.startSession(currentResumeScn, Scn.NULL, false, null);
+            sessionContext.startSession(currentResumeScn, Scn.NULL, false);
 
             final Scn resumeScn = connection.prepareQueryAndMap(
                     "SELECT * FROM V$LOGMNR_CONTENTS WHERE OPERATION_CODE IN (6,7,36) AND SCN <= ?",
@@ -111,15 +111,13 @@ public class ResumePositionProvider implements AutoCloseable {
                                 final Scn scn = Scn.valueOf(rs.getString("SCN"));
                                 if (EventType.START == eventType) {
                                     transactions.put(transactionId, new Transaction(scn));
-                                }
-                                else {
+                                } else {
                                     final Transaction transaction = transactions.get(transactionId);
                                     if (transaction == null) {
                                         LOGGER.trace(
                                                 "Ignoring transaction {} event {} at SCN {} as it must have started before current resume SCN {}.",
                                                 transactionId, eventType, scn, currentResumeScn);
-                                    }
-                                    else {
+                                    } else {
                                         transaction.markEnded(scn);
                                     }
                                 }
@@ -135,8 +133,7 @@ public class ResumePositionProvider implements AutoCloseable {
 
             LOGGER.debug("Resume/Commit SCN {}/{} - new resume SCN is {}", currentResumeScn, currentCommitScn, resumeScn);
             return resumeScn;
-        }
-        finally {
+        } finally {
             sessionContext.endMiningSession();
             queryTimer = resetTimer();
         }
