@@ -111,13 +111,15 @@ public class ResumePositionProvider implements AutoCloseable {
                                 final Scn scn = Scn.valueOf(rs.getString("SCN"));
                                 if (EventType.START == eventType) {
                                     transactions.put(transactionId, new Transaction(scn));
-                                } else {
+                                }
+                                else {
                                     final Transaction transaction = transactions.get(transactionId);
                                     if (transaction == null) {
                                         LOGGER.trace(
                                                 "Ignoring transaction {} event {} at SCN {} as it must have started before current resume SCN {}.",
                                                 transactionId, eventType, scn, currentResumeScn);
-                                    } else {
+                                    }
+                                    else {
                                         transaction.markEnded(scn);
                                     }
                                 }
@@ -133,7 +135,8 @@ public class ResumePositionProvider implements AutoCloseable {
 
             LOGGER.debug("Resume/Commit SCN {}/{} - new resume SCN is {}", currentResumeScn, currentCommitScn, resumeScn);
             return resumeScn;
-        } finally {
+        }
+        finally {
             sessionContext.endMiningSession();
             queryTimer = resetTimer();
         }

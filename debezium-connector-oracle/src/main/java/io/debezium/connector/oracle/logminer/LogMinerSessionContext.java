@@ -12,11 +12,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import io.debezium.connector.oracle.OracleConnectorConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.debezium.connector.oracle.OracleConnection;
+import io.debezium.connector.oracle.OracleConnectorConfig;
 import io.debezium.connector.oracle.OracleConnectorConfig.LogMiningStrategy;
 import io.debezium.connector.oracle.Scn;
 

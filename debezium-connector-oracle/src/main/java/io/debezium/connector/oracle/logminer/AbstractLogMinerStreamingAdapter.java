@@ -87,7 +87,8 @@ public abstract class AbstractLogMinerStreamingAdapter
         final Optional<Scn> currentScn;
         if (isPendingTransactionSkip(connectorConfig)) {
             currentScn = getCurrentScn(latestTableDdlScn, connection);
-        } else {
+        }
+        else {
             currentScn = getPendingTransactions(latestTableDdlScn, connection, pendingTransactions, tableName);
         }
 
@@ -155,12 +156,14 @@ public abstract class AbstractLogMinerStreamingAdapter
                         if (transactionStartScn.compareTo(Scn.ONE) > 0) {
                             // There is a pending transaction, capture state
                             transactions.put(transactionId, transactionStartScn);
-                        } else {
+                        }
+                        else {
                             LOGGER.warn("Unable to determine the start SCN, transaction {} will not be included", transactionId);
                         }
                     }
                 }
-            } catch (SQLException e) {
+            }
+            catch (SQLException e) {
                 LOGGER.warn("Could not query the {} view: {}", transactionTableName, e.getMessage(), e);
                 throw e;
             }
@@ -183,9 +186,11 @@ public abstract class AbstractLogMinerStreamingAdapter
 
         if (isPendingTransactionSkip(connectorConfig)) {
             LOGGER.info("\tNo in-progress transactions will be captured.");
-        } else if (isPendingTransactionViewOnly(connectorConfig)) {
+        }
+        else if (isPendingTransactionViewOnly(connectorConfig)) {
             LOGGER.info("\tSkipping transaction logs for resolving snapshot offset, only using {}.", transactionTableName);
-        } else {
+        }
+        else {
             LOGGER.info("\tConsulting {} and transaction logs for resolving snapshot offset.", transactionTableName);
             getPendingTransactionsFromLogs(connection, currentScn, pendingTransactions);
         }
@@ -194,7 +199,8 @@ public abstract class AbstractLogMinerStreamingAdapter
             for (Map.Entry<String, Scn> entry : pendingTransactions.entrySet()) {
                 LOGGER.info("\tFound in-progress transaction {}, starting at SCN {}", entry.getKey(), entry.getValue());
             }
-        } else if (!isPendingTransactionSkip(connectorConfig)) {
+        }
+        else if (!isPendingTransactionSkip(connectorConfig)) {
             LOGGER.info("\tFound no in-progress transactions.");
         }
 
@@ -254,7 +260,8 @@ public abstract class AbstractLogMinerStreamingAdapter
                                 }
                             }
                         });
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 throw new DebeziumException("Failed to resolve snapshot offset", e);
             }
         }

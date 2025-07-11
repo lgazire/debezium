@@ -143,7 +143,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
         this.jdbcConfiguration = JdbcConfiguration.adapt(jdbcConfig);
         this.useContinuousMining = connectorConfig.isLogMiningContinuousMining(jdbcConnection.getOracleVersion());
         this.logCollector = new LogFileCollector(connectorConfig, jdbcConnection);
-        this.sessionContext = new LogMinerSessionContext(jdbcConnection, useContinuousMining, connectorConfig.getLogMiningStrategy(), connectorConfig.getLogMiningPathToDictionary());
+        this.sessionContext = new LogMinerSessionContext(jdbcConnection, useContinuousMining, connectorConfig.getLogMiningStrategy(),
+                connectorConfig.getLogMiningPathToDictionary());
         this.dmlParser = new LogMinerDmlParser(connectorConfig);
         this.reconstructColumnDmlParser = new LogMinerColumnResolverDmlParser(connectorConfig);
         this.selectLobParser = new SelectLobParser();
@@ -207,11 +208,13 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             }
 
             executeLogMiningStreaming();
-        } catch (Throwable throwable) {
+        }
+        catch (Throwable throwable) {
             LOGGER.error("LogMiner session stopped due to an error.", throwable);
             metrics.incrementErrorCount();
             errorHandler.setProducerThrowable(throwable);
-        } finally {
+        }
+        finally {
             LOGGER.info("Streaming metrics at shutdown: {}", metrics);
             LOGGER.info("Offsets as shutdown: {}", offsetContext);
         }
@@ -334,7 +337,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                 LOGGER.debug("The previous batch's unavailable log problem has been cleared.");
                 sequenceUnavailable = false;
             }
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             // Oracle's online redo logs can be defined with dynamic names using the instance
             // configuration property LOG_ARCHIVE_FORMAT.
             //
@@ -353,7 +357,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             if (!e.getMessage().startsWith("ORA-00310")) {
                 // throw any non ORA-00310 error, old behavior
                 throw e;
-            } else if (sequenceUnavailable) {
+            }
+            else if (sequenceUnavailable) {
                 // If an ORA-00310 error was raised on the previous iteration and wasn't cleared
                 // after re-evaluation of the log availability and the mining session, we will
                 // explicitly stop the connector to avoid an infinite loop.
@@ -723,7 +728,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                 }
 
                 data = sql.substring(12, endIndex - 1);
-            } catch (Exception e) {
+            }
+            catch (Exception e) {
                 throw new ParsingException(null, "Failed to parse 32K_WRITE event", e);
             }
 
@@ -836,18 +842,21 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             // Cap it at the max possible database read position
             LOGGER.debug("Batch upper bounds {} exceeds maximum read position, capping to {}.", maximumBatchScn, maximumScn);
             result = maximumScn;
-        } else {
+        }
+        else {
             if (!previousUpperBounds.isNull() && maximumBatchScn.compareTo(previousUpperBounds) <= 0) {
                 // Batch size is too small, make a large leap and use current SCN
                 LOGGER.debug("Batch size upper bounds {} too small, using maximum read position {} instead.", maximumBatchScn, maximumScn);
                 result = maximumScn;
-            } else {
+            }
+            else {
                 decrementSleepTime();
                 if (maximumBatchScn.compareTo(lowerBoundsScn) < 0) {
                     // Batch SCN calculation resulted in a value before start SCN, fallback to max read position
                     LOGGER.debug("Batch upper bounds {} is before start SCN {}, fallback to maximum read position {}.", maximumBatchScn, lowerBoundsScn, maximumScn);
                     result = maximumScn;
-                } else if (!previousUpperBounds.isNull()) {
+                }
+                else if (!previousUpperBounds.isNull()) {
                     final Scn deltaScn = maximumScn.subtract(previousUpperBounds);
                     if (deltaScn.compareTo(Scn.valueOf(connectorConfig.getLogMiningScnGapDetectionGapSizeMin())) > 0) {
                         Optional<Instant> prevEndScnTimestamp = jdbcConnection.getScnToTimestamp(previousUpperBounds);
@@ -1135,7 +1144,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             metrics.setLastMiningSessionStartDuration(sessionContext.getLastSessionStartTime());
 
             return true;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             LogMinerDatabaseStateWriter.writeLogMinerStartParameters(jdbcConnection);
 
             if (e instanceof RetriableLogMinerException) {
@@ -1309,15 +1319,18 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             Loggings.logDebugAndTraceRecord(LOGGER, event,
                     "User '{}' is in schema change exclusions, DDL skipped.", event.getUserName());
             return true;
-        } else if (!Strings.isNullOrEmpty(event.getInfo()) && event.getInfo().startsWith("INTERNAL DDL")) {
+        }
+        else if (!Strings.isNullOrEmpty(event.getInfo()) && event.getInfo().startsWith("INTERNAL DDL")) {
             // Internal DDL operations are skipped.
             Loggings.logDebugAndTraceRecord(LOGGER, event, "Internal DDL skipped.");
             return true;
-        } else if (tableId != null && getSchema().storeOnlyCapturedTables() && !tableFilter.isIncluded(tableId)) {
+        }
+        else if (tableId != null && getSchema().storeOnlyCapturedTables() && !tableFilter.isIncluded(tableId)) {
             Loggings.logDebugAndTraceRecord(LOGGER, event,
                     "Skipped DDL associated with table '{}' because schema history only stores included tables.", tableId);
             return true;
-        } else if (getOffsetContext().getCommitScn().hasEventScnBeenHandled(event)) {
+        }
+        else if (getOffsetContext().getCommitScn().hasEventScnBeenHandled(event)) {
             final Scn commitScn = getOffsetContext().getCommitScn().getCommitScnForRedoThread(event.getThread());
             LOGGER.trace("DDL skipped with SCN {} <= Commit SCN {} for thread {}: {}",
                     event.getScn(), commitScn, event.getRowId(), Loggings.maybeRedactSensitiveData(event));
@@ -1353,7 +1366,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                 final LogMinerDmlParser parser;
                 if (event.hasErrorStatus() && !Strings.isNullOrBlank(event.getInfo()) && isUsingHybridStrategy()) {
                     parser = reconstructColumnDmlParser;
-                } else {
+                }
+                else {
                     parser = dmlParser;
                 }
 
@@ -1374,15 +1388,18 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                 }
 
                 return parsedEvent;
-            } catch (DmlParserException e) {
+            }
+            catch (DmlParserException e) {
                 throw new DmlParserException(String.format(
                         "DML statement couldn't be parsed. Please open a Jira issue with the statement '%s'.",
                         event.getRedoSql()),
                         e);
-            } finally {
+            }
+            finally {
                 getMetrics().setLastParseTimeDuration(Duration.between(parseStartTime, Instant.now()));
             }
-        } catch (DmlParserException e) {
+        }
+        catch (DmlParserException e) {
             notifyEventProcessingFailure(event, e);
             return null;
         }
@@ -1478,7 +1495,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                                 return tableId;
                             });
                 }
-            } else if (!isTableKnown(tableId)) {
+            }
+            else if (!isTableKnown(tableId)) {
                 // Object has been dropped and purged.
                 final TableId resolvedTableId = getSchema().getTableIdByObjectId(event.getObjectId(), event.getDataObjectId());
                 if (resolvedTableId != null) {
@@ -1525,7 +1543,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             if (userNameExcludes.contains(userName)) {
                 LOGGER.debug("Skipped transaction with excluded username {}", userName);
                 return true;
-            } else if (!userNameIncludes.isEmpty() && !userNameIncludes.contains(userName)) {
+            }
+            else if (!userNameIncludes.isEmpty() && !userNameIncludes.contains(userName)) {
                 LOGGER.debug("Skipped transaction with username {}", userName);
                 return true;
             }
@@ -1546,7 +1565,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             if (clientIdExcludes.contains(clientId)) {
                 LOGGER.debug("Skipped transaction with excluded client id {}", clientId);
                 return true;
-            } else if (!clientIdIncludes.isEmpty() && !clientIdIncludes.contains(clientId)) {
+            }
+            else if (!clientIdIncludes.isEmpty() && !clientIdIncludes.contains(clientId)) {
                 LOGGER.debug("Skipped transaction with client id {}", clientId);
                 return true;
             }
@@ -1579,7 +1599,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
         if (tableName.startsWith("OBJ# ")) {
             // This is a table that has been dropped and purged
             return true;
-        } else if (tableName.startsWith("BIN$") && tableName.endsWith("==$0") && tableName.length() == 30) {
+        }
+        else if (tableName.startsWith("BIN$") && tableName.endsWith("==$0") && tableName.length() == 30) {
             // This is a table that has been dropped, but not yet purged from the RECYCLEBIN
             return true;
         }
@@ -1631,7 +1652,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                             null));
 
             return getSchema().tableFor(tableId);
-        } catch (NonRelationalTableException e) {
+        }
+        catch (NonRelationalTableException e) {
             LOGGER.warn("{} The event will be skipped.", e.getMessage());
             getMetrics().incrementWarningCount();
             return null;
@@ -1681,7 +1703,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                 for (TableId tableId : schema.tableIds()) {
                     if (!jdbcConnection.isTableExists(tableId)) {
                         LOGGER.warn("Database table '{}' no longer exists, supplemental log check skipped", tableId);
-                    } else if (!isTableAllColumnsSupplementalLoggingEnabled(tableId)) {
+                    }
+                    else if (!isTableAllColumnsSupplementalLoggingEnabled(tableId)) {
                         LOGGER.warn("Database table '{}' not configured with supplemental logging \"(ALL) COLUMNS\"; " +
                                 "only explicitly changed columns will be captured. " +
                                 "Use: ALTER TABLE {}.{} ADD SUPPLEMENTAL LOG DATA (ALL) COLUMNS", tableId, tableId.schema(), tableId.table());
@@ -1695,7 +1718,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                     }
                     checkTableColumnNameLengths(table);
                 }
-            } else {
+            }
+            else {
                 // ALL supplemental logging is enabled, now check table/column lengths
                 for (TableId tableId : schema.tableIds()) {
                     final Table table = schema.tableFor(tableId);
@@ -1708,7 +1732,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                     checkTableColumnNameLengths(table);
                 }
             }
-        } finally {
+        }
+        finally {
             if (isUsingPluggableDatabase()) {
                 jdbcConnection.resetSessionToCdb();
             }
@@ -1836,7 +1861,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
         if (snapshotPendingTransactions == null || snapshotPendingTransactions.isEmpty()) {
             // no pending transactions, we can start mining from the snapshot SCN
             return snapshotScn;
-        } else {
+        }
+        else {
             // find the oldest transaction we can still fully process, and start from there.
             Scn minScn = snapshotScn;
             for (Map.Entry<String, Scn> entry : snapshotPendingTransactions.entrySet()) {
@@ -1848,10 +1874,11 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
 
                 if (scn.compareTo(firstScn) < 0) {
                     LOGGER.warn("Transaction {} was still ongoing while snapshot was taken, but is no longer completely " +
-                                    "recorded in the archive logs. Events will be lost. Oldest SCN in logs = {}, TX start SCN = {}",
+                            "recorded in the archive logs. Events will be lost. Oldest SCN in logs = {}, TX start SCN = {}",
                             transactionId, firstScn, scn);
                     minScn = firstScn;
-                } else if (scn.compareTo(minScn) < 0) {
+                }
+                else if (scn.compareTo(minScn) < 0) {
                     minScn = scn;
                 }
             }
@@ -1882,8 +1909,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
      */
     private Scn getFirstScnAvailableInLogs() throws SQLException {
         return jdbcConnection.getFirstScnInLogs(
-                        connectorConfig.getArchiveLogRetention(),
-                        connectorConfig.getArchiveLogDestinationName())
+                connectorConfig.getArchiveLogRetention(),
+                connectorConfig.getArchiveLogDestinationName())
                 .orElseThrow(() -> new DebeziumException("Failed to calculate oldest SCN available in logs"));
     }
 
@@ -1929,7 +1956,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             // Purposely use getLogsForOffsetScn as we want to skip consistency here
             return logCollector.getLogsForOffsetScn(scn).stream()
                     .anyMatch(log -> log.isScnInLogFileRange(scn) && log.isArchive());
-        } catch (LogFileNotFoundException e) {
+        }
+        catch (LogFileNotFoundException e) {
             // It is safe to ignore this error.
             // This identifies that the check should simply be re-evaluated after the pause.
             return false;
@@ -1955,14 +1983,16 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             // This happens only if the deviation calculation is outside the flashback/undo area or an exception was thrown.
             // In this case we have no choice but to use the upper bounds as a fallback.
             LOGGER.warn("Mining session end SCN deviation calculation is outside undo space, using upperbounds {}. If this continues, " +
-                            "consider lowering the value of the '{}' configuration property.", upperboundsScn,
+                    "consider lowering the value of the '{}' configuration property.", upperboundsScn,
                     OracleConnectorConfig.LOG_MINING_MAX_SCN_DEVIATION_MS.name());
             return Optional.of(upperboundsScn);
-        } else if (calculatedDeviatedEndScn.get().compareTo(lowerboundsScn) <= 0) {
+        }
+        else if (calculatedDeviatedEndScn.get().compareTo(lowerboundsScn) <= 0) {
             // This should also force the outer loop to recall this method again.
             LOGGER.debug("Mining session end SCN deviation as {}, outside of mining range, recalculating.", calculatedDeviatedEndScn.get());
             return Optional.empty();
-        } else {
+        }
+        else {
             // Calculated SCN is after lower bounds and within flashback/undo area, safe to return.
             return calculatedDeviatedEndScn;
         }
@@ -1989,7 +2019,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
                 }
             }
             return Optional.of(jdbcConnection.getScnAdjustedByTime(upperboundsScn, deviation));
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             LOGGER.warn("Failed to calculate deviated max SCN value from {}.", upperboundsScn);
             return Optional.empty();
         }
@@ -2007,7 +2038,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             metrics.setBatchSize(currentBatchSize);
             if (previousBatchSize != currentBatchSize && currentBatchSize == batchSizeMax) {
                 LOGGER.debug("The connector is now using the maximum batch size {}.", currentBatchSize);
-            } else if (previousBatchSize != currentBatchSize) {
+            }
+            else if (previousBatchSize != currentBatchSize) {
                 LOGGER.debug("Updated batch size window, using batch size {}", currentBatchSize);
             }
         }
@@ -2026,7 +2058,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             if (previousSleepTime != currentSleepTime) {
                 if (currentSleepTime == sleepTimeMax) {
                     LOGGER.debug("The connector is now using the maximum sleep time {}.", currentSleepTime);
-                } else {
+                }
+                else {
                     LOGGER.debug("Update sleep time, using {}", currentBatchSize);
                 }
             }
@@ -2045,7 +2078,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             metrics.setBatchSize(currentBatchSize);
             if (previousBatchSize != currentBatchSize && currentBatchSize == batchSizeMin) {
                 LOGGER.debug("The connector is now using the minimum batch size {}.", currentBatchSize);
-            } else if (previousBatchSize != currentBatchSize) {
+            }
+            else if (previousBatchSize != currentBatchSize) {
                 LOGGER.debug("Updated batch size window, using batch size {}", currentBatchSize);
             }
         }
@@ -2064,7 +2098,8 @@ public abstract class AbstractLogMinerStreamingChangeEventSource
             if (previousSleepTime != currentSleepTime) {
                 if (currentSleepTime == sleepTimeMin) {
                     LOGGER.debug("The connector is now using the minimum sleep time {}.", currentSleepTime);
-                } else {
+                }
+                else {
                     LOGGER.debug("Update sleep time, using {}", currentBatchSize);
                 }
             }

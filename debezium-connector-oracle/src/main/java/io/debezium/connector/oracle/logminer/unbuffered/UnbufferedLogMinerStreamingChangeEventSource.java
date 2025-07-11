@@ -157,7 +157,8 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
                 minCommitScn = process(minCommitScn);
 
                 getMetrics().setLastBatchProcessingDuration(Duration.between(batchStartTime, Instant.now()));
-            } else {
+            }
+            else {
                 miningStartAttempts++;
             }
 
@@ -188,7 +189,8 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
     public void close() {
         try {
             resumePositionProvider.close();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             LOGGER.warn("Failed to gracefully shutdown the resume position provider", e);
         }
     }
@@ -405,8 +407,8 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
         }
 
         throw new DebeziumException(String.format("Potential Oracle LogMiner Bug - " +
-                        "Rollback transaction %s with SCN %s found emitted %d captured changes. " +
-                        "A re-snapshot may be required. Please review your topics populated by this transaction.",
+                "Rollback transaction %s with SCN %s found emitted %d captured changes. " +
+                "A re-snapshot may be required. Please review your topics populated by this transaction.",
                 event.getTransactionId(), event.getScn().toString(), accumulator.getTotalEvents()));
     }
 
@@ -471,10 +473,12 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
                                 getSchema(),
                                 getClock()));
             }
-        } catch (SQLException e) {
+        }
+        catch (SQLException e) {
             LOGGER.warn("Failed to process truncate event", e);
             getMetrics().incrementWarningCount();
-        } finally {
+        }
+        finally {
             if (includeSql) {
                 getOffsetContext().setRedoSql("");
             }
@@ -517,7 +521,8 @@ public class UnbufferedLogMinerStreamingChangeEventSource extends AbstractLogMin
                             getSchema(),
                             Clock.system()));
 
-        } else if (event instanceof DmlEvent dmlEvent) {
+        }
+        else if (event instanceof DmlEvent dmlEvent) {
             final int databaseOffsetSeconds = databaseOffset.getTotalSeconds();
 
             getMetrics().calculateLagFromSource(dmlEvent.getChangeTime());
